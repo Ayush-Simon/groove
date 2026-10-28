@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob: data:; media-src 'self' blob:; font-src 'self'; worker-src 'self' blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="theme-color" content="#3f8c5f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Groove</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preload" href="fonts/hanken-grotesk.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Opening animation (removed by app.js once the library is ready; tap to skip). -->
+  <div class="splash" id="splash" aria-hidden="true">
+    <div class="splash-inner">
+      <div class="splash-disc">
+        <span class="splash-ring r1"></span><span class="splash-ring r2"></span>
+        <svg class="splash-vinyl" viewBox="0 0 200 200">
+          <circle cx="100" cy="100" r="96" fill="#121212"/>
+          <g fill="none" stroke="#fff" stroke-opacity=".13" stroke-width="1.5">
+            <circle cx="100" cy="100" r="86"/><circle cx="100" cy="100" r="77"/><circle cx="100" cy="100" r="68"/><circle cx="100" cy="100" r="59"/><circle cx="100" cy="100" r="50"/>
+          </g>
+          <path d="M34 66A74 74 0 0 1 72 30" fill="none" stroke="#d7d4fc" stroke-width="7" stroke-linecap="round"/>
+          <path d="M166 134A74 74 0 0 1 128 170" fill="none" stroke="#fff" stroke-opacity=".22" stroke-width="5" stroke-linecap="round"/>
+          <circle cx="100" cy="100" r="36" fill="#f2aa3c" stroke="#121212" stroke-width="4"/>
+          <path d="M70 100a30 30 0 0 1 60 0z" fill="#d7d4fc" fill-opacity=".9"/>
+          <circle cx="100" cy="100" r="7" fill="#3f8c5f" stroke="#121212" stroke-width="3"/>
+        </svg>
+      </div>
+      <div class="splash-word"><span>g</span><span>r</span><span>o</span><span>o</span><span>v</span><span>e</span></div>
+      <div class="splash-bars"><i></i><i></i><i></i><i></i><i></i></div>
+    </div>
+  </div>
+
+  <svg class="sprite" aria-hidden="true">
+    <symbol id="i-play" viewBox="0 0 24 24"><path fill="currentColor" d="M7.5 5.2v13.6c0 .8.9 1.3 1.6.9l10.6-6.8c.6-.4.6-1.4 0-1.8L9.1 4.3c-.7-.4-1.6.1-1.6.9z"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><rect fill="currentColor" x="6" y="4.5" width="4.2" height="15" rx="1.3"/><rect fill="currentColor" x="13.8" y="4.5" width="4.2" height="15" rx="1.3"/></symbol>
+    <symbol id="i-next" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="M6 6.2v11.6c0 .5.6.8 1 .5l8.3-5.8c.4-.3.4-.7 0-1L7 5.7c-.4-.3-1 0-1 .5z"/><path d="M18.5 5.5v13"/></g></symbol>
+    <symbol id="i-prev" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" transform="matrix(-1 0 0 1 24 0)"><path d="M6 6.2v11.6c0 .5.6.8 1 .5l8.3-5.8c.4-.3.4-.7 0-1L7 5.7c-.4-.3-1 0-1 .5z"/><path d="M18.5 5.5v13"/></g></symbol>
+    <symbol id="i-shuffle" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 4.5h3v3"/><path d="M4 18.5c4.5 0 6-2.6 8-6.5s3.5-7.5 7.5-7.5"/><path d="M16.5 19.5h3v-3"/><path d="M4 5.5c2.6 0 4.2 1 5.4 2.6M14.6 16c1.2 1.6 2.6 3.5 4.9 3.5"/></g></symbol>
+    <symbol id="i-repeat" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17.5H6a3 3 0 0 1-3-3v-5a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v5a3 3 0 0 1-3 3h-6"/><path d="m14 15 -2.5 2.5L14 20"/></g></symbol>
+    <symbol id="i-repeat1" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17.5H6a3 3 0 0 1-3-3v-5a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v5a3 3 0 0 1-3 3h-6"/><path d="m14 15 -2.5 2.5L14 20"/><path d="M11 10.5 12.4 9.5v4.5"/></g></symbol>
+    <symbol id="i-volume" viewBox="0 0 24 24"><path fill="currentColor" d="M11 4.7 6.6 8.5H3.5A1.5 1.5 0 0 0 2 10v4a1.5 1.5 0 0 0 1.5 1.5h3.1l4.4 3.8c.6.5 1.5.1 1.5-.7V5.4c0-.8-.9-1.2-1.5-.7z"/><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M15.5 9a4.5 4.5 0 0 1 0 6"/><path d="M18.5 6a8.5 8.5 0 0 1 0 12"/></g></symbol>
+    <symbol id="i-volume-low" viewBox="0 0 24 24"><path fill="currentColor" d="M11 4.7 6.6 8.5H3.5A1.5 1.5 0 0 0 2 10v4a1.5 1.5 0 0 0 1.5 1.5h3.1l4.4 3.8c.6.5 1.5.1 1.5-.7V5.4c0-.8-.9-1.2-1.5-.7z"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><g fill="currentColor"><circle cx="12" cy="5.5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="18.5" r="1.7"/></g></symbol>
+    <symbol id="i-more-h" viewBox="0 0 24 24"><g fill="currentColor"><circle cx="5.5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="18.5" cy="12" r="1.7"/></g></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></g></symbol>
+    <symbol id="i-heart" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.2a4.3 4.3 0 0 1 7.5 2.6C19.5 15.4 12 20 12 20z"/></symbol>
+    <symbol id="i-heart-fill" viewBox="0 0 24 24"><path fill="currentColor" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.2a4.3 4.3 0 0 1 7.5 2.6C19.5 15.4 12 20 12 20z"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M19 12H5m6-6-6 6 6 6"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></g></symbol>
+    <symbol id="i-note" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></g></symbol>
+    <symbol id="i-notes" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M14 34V12l12-3v6"/><ellipse cx="9.5" cy="34.5" rx="4.5" ry="3.5" fill="currentColor"/><path d="M32 30V14l10-3v16"/><ellipse cx="27.5" cy="31" rx="4.5" ry="3.5" fill="currentColor"/><ellipse cx="37.5" cy="27.5" rx="4.5" ry="3.5" fill="currentColor"/></g></symbol>
+    <symbol id="i-playlist" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h12M3 12h12M3 18h7"/><path d="M17 18V9l4-1"/><circle cx="15" cy="18" r="2"/></g></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></g></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></g></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7 8l5-5 5 5M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></g></symbol>
+    <symbol id="i-next-up" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M4 12h10M4 18h6M17 14l4 4-4 4"/></g></symbol>
+    <symbol id="i-headphones" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/></g></symbol>
+    <symbol id="i-sync" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.6-4.4M4 4v3h3"/><path d="M4 13a8 8 0 0 0 14.6 4.4M20 20v-3h-3"/></g></symbol>
+    <symbol id="i-mix" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="12" r="4.5"/><circle cx="17" cy="12" r="4.5"/><circle cx="7" cy="12" r=".8" fill="currentColor"/><circle cx="17" cy="12" r=".8" fill="currentColor"/></g></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M6 6l12 12M18 6 6 18"/></symbol>
+    <symbol id="i-zoom-in" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 6v12M6 12h12"/></symbol>
+    <symbol id="i-zoom-out" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M6 12h12"/></symbol>
+    <symbol id="i-eq" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 4v16M12 4v16M18 4v16"/><circle cx="6" cy="14" r="2.2" fill="currentColor"/><circle cx="12" cy="8" r="2.2" fill="currentColor"/><circle cx="18" cy="15" r="2.2" fill="currentColor"/></g></symbol>
+    <symbol id="i-speaker" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="5" y="2.5" width="14" height="19" rx="3"/><circle cx="12" cy="14.5" r="3.6"/><circle cx="12" cy="7" r="1.2" fill="currentColor"/></g></symbol>
+    <symbol id="i-3d" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="2.4" fill="currentColor"/><path d="M7.5 7.5a6.4 6.4 0 0 0 0 9M16.5 7.5a6.4 6.4 0 0 1 0 9"/><path d="M4.6 4.6a10.5 10.5 0 0 0 0 14.8M19.4 4.6a10.5 10.5 0 0 1 0 14.8"/></g></symbol>
+    <symbol id="i-stereo" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 12h3l2-5 3 10 3-8 2 3h3"/></g></symbol>
+    <symbol id="i-sort" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16M3.5 16.5 7 20l3.5-3.5M17 20V4M13.5 7.5 17 4l3.5 3.5"/></g></symbol>
+  </svg>
+
+  <div class="stage" id="stage">
+    <!-- ============ LIBRARY PANEL ============ -->
+    <section class="panel main-panel theme-green" id="mainPanel" aria-label="Library">
+      <header class="topbar">
+        <button class="logo-badge" id="btnHome" aria-label="Groove home"><img src="icon.svg" alt=""></button>
+        <div class="search-field" id="searchField" hidden>
+          <svg><use href="#i-search"/></svg>
+          <input type="search" id="search" placeholder="Search your music" aria-label="Search" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="topbar-actions">
+          <button class="circle-btn" id="btnSearch" aria-label="Search" title="Search"><svg><use href="#i-search"/></svg></button>
+          <button class="circle-btn" id="btnAdd" aria-label="Add music" title="Add music"><svg><use href="#i-plus"/></svg></button>
+          <button class="circle-btn" id="btnSound" aria-label="Sound: equaliser and spatial audio" title="Sound"><svg><use href="#i-eq"/></svg></button>
+          <button class="circle-btn" id="btnSettings" aria-label="Playback settings" title="Playback settings"><svg><use href="#i-sliders"/></svg></button>
+        </div>
+      </header>
+
+      <div class="hero" id="hero">
+        <button class="circle-btn back-btn" id="btnBack" aria-label="Back" hidden><svg><use href="#i-back"/></svg></button>
+        <h1 class="hero-title"><span id="viewTitle">Groove to the Beats</span> <svg class="hero-notes" id="heroNotes" aria-hidden="true"><use href="#i-notes"/></svg></h1>
+        <div class="hero-meta" id="viewMeta"></div>
+        <div class="hero-actions" id="heroActions">
+          <button class="pill pill-yellow" id="btnPlayAll"><svg><use href="#i-play"/></svg>Play</button>
+          <button class="pill pill-outline" id="btnShuffleAll"><svg><use href="#i-shuffle"/></svg>Shuffle</button>
+          <button class="pill pill-outline" id="btnSort"><svg><use href="#i-sort"/></svg><span id="sortLabel">Title</span></button>
+          <button class="circle-btn small" id="btnViewMore" aria-label="More options"><svg><use href="#i-more-h"/></svg></button>
+        </div>
+      </div>
+
+      <nav class="tabs" id="tabs" aria-label="Library sections">
+        <button class="tab" data-tab="songs">Songs <span class="count" id="countSongs">0</span></button>
+        <button class="tab" data-tab="artists">Artists <span class="count" id="countArtists">0</span></button>
+        <button class="tab" data-tab="albums">Albums <span class="count" id="countAlbums">0</span></button>
+        <button class="tab" data-tab="playlists">Playlists <span class="count" id="countPlaylists">0</span></button>
+        <button class="tab" data-tab="mix">Mix <svg class="tab-icon"><use href="#i-mix"/></svg></button>
+      </nav>
+
+      <div class="view-scroll" id="content" tabindex="-1">
+        <div id="viewBody"></div>
+        <div class="empty" id="emptyState" hidden>
+          <div class="empty-badge"><svg><use href="#i-notes"/></svg></div>
+          <h2 id="emptyTitle">Add your music</h2>
+          <p id="emptyText"></p>
+          <div class="empty-actions" id="emptyActions">
+            <button class="pill pill-yellow" id="btnEmptyAdd"><svg><use href="#i-upload"/></svg>Choose files</button>
+            <button class="pill pill-outline" id="btnEmptyFolder"><svg><use href="#i-folder"/></svg>Choose a folder</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- mini player (phones & tablets) -->
+      <div class="mini" id="mini" hidden>
+        <button class="mini-open" id="miniOpen" aria-label="Open Now Playing">
+          <span class="thumb" id="miniThumb"></span>
+          <span class="mini-text"><span class="mini-title" id="miniTitle"></span><span class="mini-sub" id="miniSub"></span></span>
+        </button>
+        <button class="circle-btn" id="miniPlay" aria-label="Play"><svg><use href="#i-play"/></svg></button>
+        <button class="circle-btn" id="miniNext" aria-label="Next"><svg><use href="#i-next"/></svg></button>
+        <span class="mini-progress"><span id="miniProgress"></span></span>
+      </div>
+    </section>
+
+    <!-- ============ NOW PLAYING PANEL ============ -->
+    <section class="panel np-panel theme-lavender" id="nowPlaying" aria-label="Now Playing">
+      <header class="np-head">
+        <button class="circle-btn" id="npClose" aria-label="Close Now Playing"><svg><use href="#i-back"/></svg></button>
+        <div class="np-from"><span>Now playing from</span><strong id="npFrom">Your library</strong></div>
+        <button class="circle-btn" id="npMore" aria-label="More options"><svg><use href="#i-more"/></svg></button>
+      </header>
+      <div class="np-scroll">
+        <div class="np-cover" id="npCover">
+          <div class="vinyl" id="vinyl"><span class="vinyl-label"><img id="vinylLabel" alt="" hidden></span></div>
+          <div class="sleeve">
+            <img id="npArt" alt="" hidden>
+            <span class="art-placeholder"><svg><use href="#i-notes"/></svg></span>
+          </div>
+        </div>
+
+        <div class="np-title-row">
+          <div class="np-titles">
+            <h2 id="npTitle">Nothing playing</h2>
+            <div class="np-artist" id="npArtist">Add music and press play</div>
+          </div>
+          <button class="circle-btn" id="npLove" aria-label="Love" aria-pressed="false" disabled><svg><use href="#i-heart"/></svg></button>
+        </div>
+
+        <div class="np-chips">
+          <span class="chip" id="npQuality" hidden></span>
+          <span class="chip chip-key" id="npKey">Key —</span>
+          <button class="chip chip-bpm" id="npBpm" title="Tempo — tap to double or halve" disabled>BPM —</button>
+        </div>
+
+        <div class="deck-screen">
+          <canvas id="deckCanvas" aria-label="Zoomed waveform with beat grid. Drag to scrub."></canvas>
+          <div class="deck-status" id="deckStatus">Nothing playing</div>
+          <div class="deck-zoom">
+            <button class="mini-btn" id="deckZoomOut" aria-label="Zoom out"><svg><use href="#i-zoom-out"/></svg></button>
+            <button class="mini-btn" id="deckZoomIn" aria-label="Zoom in"><svg><use href="#i-zoom-in"/></svg></button>
+          </div>
+        </div>
+        <canvas class="overview" id="overviewCanvas" aria-label="Track overview. Tap to seek."></canvas>
+        <div class="np-times"><span id="npElapsed">0:00</span><span class="xfade-note" id="xfadeNote"></span><span id="npRemaining">-0:00</span></div>
+
+        <div class="controls">
+          <button class="circle-btn ctl toggle" id="npRepeat" aria-label="Repeat: off" aria-pressed="false"><svg><use href="#i-repeat"/></svg></button>
+          <button class="circle-btn ctl" id="npPrev" aria-label="Previous"><svg><use href="#i-prev"/></svg></button>
+          <button class="play-btn" id="npPlay" aria-label="Play"><svg><use href="#i-play"/></svg></button>
+          <button class="circle-btn ctl" id="npNext" aria-label="Next"><svg><use href="#i-next"/></svg></button>
+          <button class="circle-btn ctl toggle" id="npShuffle" aria-label="Shuffle" aria-pressed="false"><svg><use href="#i-shuffle"/></svg></button>
+        </div>
+        <div class="volume" id="npVolumeWrap">
+          <svg><use href="#i-volume-low"/></svg>
+          <input type="range" id="npVolume" min="0" max="1" step="0.01" value="1" aria-label="Volume">
+          <svg><use href="#i-volume"/></svg>
+        </div>
+
+        <button class="sound-pill" id="npSound" aria-label="Sound settings"><svg><use href="#i-eq"/></svg><span id="npSoundText">Sound: original</span></button>
+
+        <div class="upnext">
+          <div class="upnext-head">
+            <h3>Up next</h3>
+            <button class="pill pill-outline small" id="btnXfadeQuick" title="Crossfade between songs">Crossfade off</button>
+          </div>
+          <ol class="queue-list" id="queueList"></ol>
+          <p class="queue-empty" id="queueEmpty">Nothing up next.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="drop-overlay" id="dropOverlay" aria-hidden="true">
+    <div class="drop-card"><svg><use href="#i-upload"/></svg><span>Drop to add to your library</span></div>
+  </div>
+
+  <div class="menu" id="menu" role="menu" hidden></div>
+
+  <dialog class="dialog" id="dlgPrompt">
+    <form method="dialog">
+      <h3 id="dlgPromptTitle">New playlist</h3>
+      <input type="text" id="dlgPromptInput" maxlength="120" autocomplete="off" required>
+      <div class="dialog-actions">
+        <button type="button" class="pill pill-outline" id="dlgPromptCancel">Cancel</button>
+        <button type="submit" class="pill pill-ink" value="ok" id="dlgPromptOk">Create</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="dialog" id="dlgConfirm">
+    <form method="dialog">
+      <h3 id="dlgConfirmTitle"></h3>
+      <p id="dlgConfirmText"></p>
+      <div class="dialog-actions">
+        <button type="submit" class="pill pill-outline" value="cancel">Cancel</button>
+        <button type="submit" class="pill pill-ink" value="ok" id="dlgConfirmOk">OK</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="dialog" id="dlgPick">
+    <form method="dialog">
+      <h3>Add to playlist</h3>
+      <div class="pick-list" id="dlgPickList"></div>
+      <div class="dialog-actions"><button type="submit" class="pill pill-outline" value="cancel">Cancel</button></div>
+    </form>
+  </dialog>
+
+  <dialog class="dialog dialog-info" id="dlgInfo">
+    <form method="dialog">
+      <div class="info-head">
+        <span class="thumb big" id="infoThumb"></span>
+        <div><h3 id="infoTitle"></h3><div class="info-sub" id="infoSub"></div></div>
+      </div>
+      <dl class="info-list" id="infoList"></dl>
+      <p class="fine">Groove plays this file directly from your disk. With the equaliser and sound stage off it is played exactly as stored; your device's audio settings decide the final output sample rate.</p>
+      <div class="dialog-actions"><button type="submit" class="pill pill-ink" value="ok">Done</button></div>
+    </form>
+  </dialog>
+
+  <dialog class="dialog dialog-sound" id="dlgSound">
+    <form method="dialog">
+      <div class="sound-head">
+        <h3>Sound</h3>
+        <button type="submit" class="circle-btn small" value="ok" aria-label="Close"><svg><use href="#i-x"/></svg></button>
+      </div>
+      <section class="sound-sec">
+        <label class="setting switch-row">
+          <span class="setting-text"><b>Equaliser</b><small>10 bands, 31 Hz to 16 kHz. Boosts are balanced so nothing clips.</small></span>
+          <input type="checkbox" id="eqToggle" class="switch">
+        </label>
+        <div class="preset-row" id="presetRow" role="group" aria-label="Equaliser presets"></div>
+        <div class="eq-bands" id="eqBands"></div>
+        <div class="eq-foot"><span class="fine" id="eqHeadroom"></span><button type="button" class="pill pill-outline small" id="eqReset">Reset to flat</button></div>
+      </section>
+      <section class="sound-sec">
+        <div class="setting-text"><b>Sound stage</b><small id="stageDesc"></small></div>
+        <div class="stage-grid" id="stageGrid" role="group" aria-label="Sound stage"></div>
+        <div class="setting intensity-row" id="intensityRow">
+          <span class="setting-text"><b>Intensity</b></span>
+          <span class="setting-value" id="stageIntVal">60%</span>
+        </div>
+        <input type="range" id="stageIntensity" min="0" max="100" step="1" value="60" aria-label="Sound stage intensity">
+      </section>
+      <p class="fine">With the equaliser off (or flat) and the sound stage off, songs play exactly as stored.</p>
+    </form>
+  </dialog>
+
+  <dialog class="dialog" id="dlgSettings">
+    <form method="dialog">
+      <div class="setting-block library-block" id="libraryBlock" hidden>
+        <h3>Your music</h3>
+        <ul class="folder-list" id="folderList"></ul>
+        <small class="fine">Songs stay on your phone; Groove only remembers where they are, plus their details and cover thumbnails.</small>
+        <div class="cue-row">
+          <button type="button" class="pill pill-outline small" id="btnAddFolderSettings">Add a folder</button>
+          <button type="button" class="pill pill-outline small danger" id="btnClearLibrary">Clear library</button>
+        </div>
+      </div>
+      <h3>Playback</h3>
+      <label class="setting">
+        <span class="setting-text"><b>Crossfade songs</b><small>Fade into the next song as the current one ends.</small></span>
+        <span class="setting-value" id="xfadeValue">Off</span>
+      </label>
+      <input type="range" id="xfadeRange" min="0" max="12" step="1" value="0" aria-label="Crossfade length in seconds">
+      <label class="setting switch-row">
+        <span class="setting-text"><b>Beat-match crossfades</b><small>When two songs have close tempos, line up their beats during the fade.</small></span>
+        <input type="checkbox" id="beatmatchToggle" class="switch" checked>
+      </label>
+      <div class="setting-block" id="cueOutputBlock" hidden>
+        <span class="setting-text"><b>Mix preview output</b><small>Send the Mix screen's preview to headphones while the main song keeps playing on your speakers.</small></span>
+        <div class="cue-row">
+          <select id="cueOutput" aria-label="Preview output"><option value="">Same as speakers</option></select>
+          <button type="button" class="pill pill-outline small" id="btnDeviceNames">Show device names</button>
+        </div>
+      </div>
+      <p class="fine" id="fadeNote" hidden>On iPhone and iPad, crossfading needs Safari's audio mixer, so audio is routed through it while crossfade or Mix is in use.</p>
+      <p class="fine version-note" id="versionNote"></p>
+      <div class="dialog-actions"><button type="submit" class="pill pill-ink" value="ok">Done</button></div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+  <input type="file" id="fileInput" multiple accept="audio/*,.flac,.m4a,.alac,.aac,.aif,.aiff,.wav,.mp3,.ogg,.oga,.opus" hidden>
+  <input type="file" id="folderInput" webkitdirectory multiple hidden>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

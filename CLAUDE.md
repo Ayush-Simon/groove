@@ -1,0 +1,35 @@
+# CLAUDE.md — Groove (formerly Aura)
+
+Groove is a web music player for the user's own files: bold colour panels with ink outlines (green library, mustard detail pages, ink Mix screen, lavender Now Playing), as-is playback, DJ-style 3-band waveform, key + BPM detection, auto crossfade and a two-deck Mix screen. Plain HTML/CSS/ES modules, no build step, no dependencies. Font: Hanken Grotesk, self-hosted in `mobile-app/fonts/`.
+
+Layout: ≥1181px = library panel + Now Playing panel side by side. ≤1180px = Now Playing is a full-screen sheet opened from the mini player. ≤720px = full-bleed panels. Lists adapt to the panel width with container queries (`container-name: view`).
+
+## Run
+```bash
+python3 server.py        # http://localhost:8080   (--lan to expose on Wi-Fi)
+```
+
+## Files
+- `server.py` — static server for `mobile-app/` only. Path traversal and dotfile protection, Range requests (seeking), CSP + security headers, localhost by default. Keep these protections.
+- `mobile-app/js/app.js` — all UI/state. Tabs: `songs`, `artists`, `albums`, `playlists`, `mix`; detail pages are pushed on `state.stack` ({type: artist|album|playlist, key}). Queue/shuffle/repeat, Loved Songs (system playlist id `loved`), Media Session, auto-crossfade trigger, Mix screen (`renderMix`/`tickMix`). Settings in `localStorage` `groove.settings`, session in `groove.session`. `?debug` exposes `window.grooveEngine` for tests.
+- `mobile-app/js/engine.js` — two decks (each an `<audio>` with the original file). `active` plays the queue; `other` is the cue/next deck. Crossfader `x` gives equal-power gains. `mixTo()` waits for the next bar when both tracks have grids, tempo-matches with `playbackRate` (pitch preserved; ±8% max, also half/double time), then a phase-lock loop nudges the speed so beats line up. `commit()` swaps the decks and emits `swap`, and the tempo glides back to 100%. iPhone/iPad can't set `<audio>.volume`, so `enableFading()` (called from a tap) routes both decks through Web Audio gain nodes.
+- `mobile-app/js/metadata.js` — `readMetadata(file)` returns tags, art, codec, lossless, sampleRate, bitDepth, channels, bitrate, duration. Unknown values stay `null`; never invent defaults. `qualityInfo(track)` gives the "Lossless / Hi-Res Lossless" label (Hi-Res = lossless above 48 kHz).
+- `mobile-app/js/storage.js` — two backends behind one async API. Browser: in-memory, session-only (`files` holds File references, never copies); nothing persists after the tab closes, on purpose. Android app (`persistent`): IndexedDB `groove-library` with `tracks` (each has `uri` = content URI, `folder`, `path`), `art` (640px JPEG), `thumbs` (240px), `playlists`, `folders` ({uri,name}), `meta` (`excluded` = songs removed from a saved folder). Audio is never stored. `purgeOldLibrary()` deletes the old `aura-library` IndexedDB. Settings persist in localStorage `groove.settings`.
+- `mobile-app/js/native.js` — Android bridge: `GrooveNative` (update, theme, pickFiles, pickFolder, rescanFolders, release, grantInfo); results arrive via `window.grooveNativeResult(json)`. `mediaUrl(uri)` = `/media?u=…`; `RemoteFile` reads a phone file like a File (Range requests, cached chunks) for metadata/analysis.
+- `mobile-app/js/sound.js` — `SoundFX`: 10 biquads (low shelf, 8 peaking, high shelf) → headroom gain (−peak dB of the combined curve) → dry + one of three wet paths: `spatial` (HRTF panners at ±50°, a centre image, rear reverb), `headphones` (HRTF at ±30° + short room), `speakers` (mid/side widener). `engine.enableGraph()` creates the AudioContext and inserts it; after that, levels go through per-deck gain nodes. Don't call it Dolby.
+- `mobile-app/js/analyzer.js` + `analyzer-worker.js` — decode at 22.05 kHz mono (analysis only), worker returns `{ version, duration, binsPerSec (~100), low/mid/high: Uint8Array, bpm, beatOffset, downbeat, key, keyShort, camelot, ... }`. bpm/key are `null` when not confident. Bump `version` if the format changes.
+- `mobile-app/js/waveform.js` — `DeckWaveform` (scrolling, centre playhead, beat grid, drag to scrub, zoom) and `OverviewWaveform` (whole track, click/drag to seek). HiDPI aware.
+
+## Android
+`android/` = native shell (plain Java, no AndroidX/Gradle), package `app.groove.player`. `MainActivity` serves `assets/web` (copied from `mobile-app/` at build time) at `https://appassets.androidplatform.net/` via `shouldInterceptRequest`, native pickers (ACTION_OPEN_DOCUMENT multi-select, ACTION_OPEN_DOCUMENT_TREE) with persistable permissions, folder rescans, audio focus, and back button (`window.grooveBack`). `MediaLibrary` streams `/media?u=<content uri>` from a ParcelFileDescriptor. Range: WebView itself skips to the range start (Chromium InputStreamReader uses `available()` as the size, `skip()`s, reads to EOF, sets Content-Length), so the stream must start at byte 0 and end at the range end; we only add status 206 + Content-Range (`RangeSupport`, pure Java, simulated off-device in tests). Serves only for persisted (or this-session) grants; folder scans walk DocumentsContract children. Android 10 caps single-file grants at 128. The opening animation is `#splash` in index.html (CSS only; `hideSplash()` in app.js); the native window background is the same green. `PlaybackService` = foreground mediaPlayback service + MediaSession + MediaStyle notification. JS ↔ native: `window.GrooveNative.update(json)` / `.theme(color, lightBars)`; native → JS: `window.grooveRemote(cmd)` (play, pause, toggle, next, prev, seek:N). See `mobile-app/js/native.js`. Build: `TOOLS=… android/build.sh` → `android/build/Groove.apk` (aapt2 → javac → dx → align → apksigner v2/v3). No lambdas in Java (dx doesn't desugar). Keep `android/keystore/` — same key needed for updates.
+
+Safety net (app only, `app.js`): if the WebView `<audio>` errors on a phone file, or it's stuck (position frozen 5 s while playing, or not loaded 8 s after pressing play), `rescuePlayback()` decodes the whole file with `decodeFull()` and plays it as an in-memory 16-bit WAV at the file's sample rate (`t.convert = true` is saved so it's used straight away next time; at most 3 converted songs are kept in memory). Settings shows the version (`APP_VERSION`; keep it in step with `VERSION_NAME` in build.sh).
+
+## Rules
+- Never use `innerHTML` with data; build DOM with the `h()` helper so tags from files can't inject HTML. CSP disallows inline scripts and styles.
+- Playback uses `<audio>` elements with the original files. Only volume (and small beat-sync speed changes) are touched during fades. Don't add EQ/"enhancement" processing or claim "bit-perfect"/"exclusive" output.
+- Don't add placeholder or fake features (fake streaming services, fake hardware status, made-up metadata). If something isn't implemented, leave it out of the UI.
+- Test after changes: `node --check` doesn't parse ES modules usefully; load the page in a browser and watch the console. The analysis worker can be exercised in Node by loading the file with a fake `self`.
+
+## Old code
+`_archive/` holds the previous prototype (DSP "booster", fake streaming hub, RPi simulator, native stubs). It isn't used and can be deleted.

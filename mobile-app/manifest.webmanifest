@@ -1,0 +1,12 @@
+{
+  "name": "Groove",
+  "short_name": "Groove",
+  "description": "A clean music player for your own files.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#3f8c5f",
+  "theme_color": "#3f8c5f",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

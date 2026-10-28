@@ -1,0 +1,16 @@
+# App signing key and password: never publish these (anyone with them could ship fake updates)
+android/keystore/
+*.jks
+*.keystore
+
+# Build output. Attach Groove.apk to a GitHub Release instead of committing it.
+android/build/
+
+# Old prototype, not used by the app (large)
+_archive/
+
+# Editor / OS files
+.vscode/
+.idea/
+.DS_Store
+__pycache__/
