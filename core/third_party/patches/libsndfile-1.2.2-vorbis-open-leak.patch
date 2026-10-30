@@ -1,0 +1,14 @@
+diff --git a/src/ogg_vorbis.c b/src/ogg_vorbis.c
+index f9428ed..7857c51 100644
+--- a/src/ogg_vorbis.c
++++ b/src/ogg_vorbis.c
+@@ -465,6 +465,9 @@ ogg_vorbis_open (SF_PRIVATE *psf)
+ 
+ 	vdata = calloc (1, sizeof (VORBIS_PRIVATE)) ;
+ 	psf->codec_data = vdata ;
++	/* Register the close handler before reading the headers, so that a malformed file which fails after
++	** vorbis_info_init() still has its codec state freed when the open is aborted. */
++	psf->codec_close = vorbis_close ;
+ 
+ 	if (psf->file.mode == SFM_RDWR)
+ 		return SFE_BAD_MODE_RW ;

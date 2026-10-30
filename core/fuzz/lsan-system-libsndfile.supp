@@ -1,0 +1,2 @@
+# Only for desktop fuzzing against the UNPATCHED system libsndfile (see third_party/patches/README.md).
+leak:vorbis_info_init

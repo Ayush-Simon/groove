@@ -25,9 +25,15 @@ python3 server.py        # http://localhost:8080   (--lan to expose on Wi-Fi)
 
 Safety net (app only, `app.js`): if the WebView `<audio>` errors on a phone file, or it's stuck (position frozen 5 s while playing, or not loaded 8 s after pressing play), `rescuePlayback()` decodes the whole file with `decodeFull()` and plays it as an in-memory 16-bit WAV at the file's sample rate (`t.convert = true` is saved so it's used straight away next time; at most 3 converted songs are kept in memory). Settings shows the version (`APP_VERSION`; keep it in step with `VERSION_NAME` in build.sh).
 
+## Native engine (core/ + platform/)
+Shared C++17 core under the UI: `core/` (AudioEngine FSM + command queue, gapless double-buffered decoders, SPSC ring, bit-perfect path, 10-band EQ with PeakResponse/Guaranteed headroom, FLAC/libsndfile/DSF/DFF decoders, byte-level tag parser, SQLite scanner + smart playlists). Bridges: `platform/android/jni` (JNI with handle registry, RegisterNatives, WeakReference listener; AAudio output) + `platform/android/kotlin`; `platform/ios` (Obj-C++ GRVEngine, RemoteIO output, AudioToolbox AAC/ALAC, Swift wrapper + WKWebView host). Full design, honest platform limits and roadmap: `docs/ENGINE.md`. Not yet wired into the shipping APK (phase 3).
+- Validate every core change with `scripts/validate-core.sh` (GCC/Clang -Werror, 33 tests, ASan/UBSan/LSan, TSan, Valgrind, libFuzzer, Android compile check). Keep the render path lock-free/allocation-free/noexcept; no `new`/`delete`; no exceptions across the API (Result<T>); file reads via `ByteSource` (pread, never mmap: SIGBUS on removed storage).
+- Mobile builds fetch pinned deps (`GROOVE_FETCH_DEPS=ON`); `core/third_party/patches/` holds a libsndfile Vorbis-open leak fix found by the fuzzer.
+- `bitPerfect` must stay honest: Android ≤13 is never bit-perfect (system mixer); Android 14+ USB via BitPerfectRouting; iOS when the hardware rate matches.
+
 ## Rules
 - Never use `innerHTML` with data; build DOM with the `h()` helper so tags from files can't inject HTML. CSP disallows inline scripts and styles.
-- Playback uses `<audio>` elements with the original files. Only volume (and small beat-sync speed changes) are touched during fades. Don't add EQ/"enhancement" processing or claim "bit-perfect"/"exclusive" output.
+- Web playback uses `<audio>` elements with the original files. Only volume (and small beat-sync speed changes) are touched during fades. Don't claim "bit-perfect"/"exclusive" output for the web path; the native engine reports it per stream (EngineSnapshot::bitPerfect).
 - Don't add placeholder or fake features (fake streaming services, fake hardware status, made-up metadata). If something isn't implemented, leave it out of the UI.
 - Test after changes: `node --check` doesn't parse ES modules usefully; load the page in a browser and watch the console. The analysis worker can be exercised in Node by loading the file with a fake `self`.
 

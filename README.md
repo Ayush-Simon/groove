@@ -51,6 +51,7 @@ mobile-app/
   js/analyzer-worker.js   3-band waveform, BPM + beat grid, key detection (runs off the main thread)
   js/waveform.js          Deck (scrolling) and overview waveform canvases
 sample-music/             Synthetic test tones (not real music) for quick testing
+_archive/                 Earlier prototype code, kept for reference; not used
 ```
 
 ## Security
@@ -76,3 +77,19 @@ Build without Android Studio: `TOOLS=/path/to/tools android/build.sh` (needs aap
 android-29.jar, dx.jar and apksigner.jar — see the comments in the script). The output is
 `android/build/Groove.apk`. Keep `android/keystore/` safe: future updates must be signed with
 the same key or Android will refuse to install them over the old version.
+
+## Native audio engine (in progress)
+
+`core/` is a shared C++ engine for the Android and iOS apps: gapless playback, a bit-perfect output path where the
+OS allows one, a 10-band parametric EQ that can't clip, DSD (DSF/DFF), a byte-level tag parser and a background
+SQLite library with smart playlists. `platform/` holds the JNI/AAudio (Android) and Objective-C++/CoreAudio (iOS)
+bridges. The current web UI stays as it is on top.
+
+```bash
+scripts/validate-core.sh            # build + 33 tests + sanitizers + Valgrind + fuzzing + Android compile check
+cmake -S core -B build -DGROOVE_TOOLS=ON && cmake --build build
+build/groove-cli meta song.flac     # tags and stream info
+```
+
+Design, platform limits (when bit-perfect is and isn't possible) and the roadmap: [docs/ENGINE.md](docs/ENGINE.md).
+
