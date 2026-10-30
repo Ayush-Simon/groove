@@ -37,7 +37,7 @@ import java.util.regex.Pattern;
 final class MediaLibrary {
     private static final String TAG = "Groove";
     private static final Pattern AUDIO_EXT = Pattern.compile(
-            "\\.(flac|m4a|alac|aac|mp4|aif|aiff|aifc|wav|wave|mp3|ogg|oga|opus)$", Pattern.CASE_INSENSITIVE);
+            "\\.(flac|m4a|alac|aac|mp4|aif|aiff|aifc|wav|wave|w64|mp3|ogg|oga|opus|dsf|dff)$", Pattern.CASE_INSENSITIVE);
     private static final int MAX_DEPTH = 16;
     private static final int MAX_FILES = 20000;
 
@@ -202,6 +202,40 @@ final class MediaLibrary {
         Uri uri = Uri.parse(u);
         ContentResolver cr = ctx.getContentResolver();
 
+        String rangeHeader = null;
+        Map<String, String> req = request.getRequestHeaders();
+        if (req != null) {
+            for (Map.Entry<String, String> e : req.entrySet()) {
+                if ("range".equalsIgnoreCase(e.getKey())) rangeHeader = e.getValue();
+            }
+        }
+
+        // Playback asks for decode=1: Groove's own decoders (libFLAC, libsndfile, DSD) turn the song into PCM
+        // WAV here, so the WebView never has to demux/decode the original. Formats Groove doesn't decode
+        // (MP3/AAC/ALAC/Ogg in this build) fall through to the original bytes below.
+        if ("1".equals(request.getUrl().getQueryParameter("decode"))) {
+            app.groove.engine.DecodedWavStream dec = app.groove.engine.DecodedWavStream.open(ctx, u);
+            if (dec != null) {
+                Map<String, String> h = new HashMap<>();
+                h.put("Cache-Control", "no-store");
+                h.put("X-Content-Type-Options", "nosniff");
+                h.put("Accept-Ranges", "bytes");
+                h.put("X-Groove-Decoder", "native");
+                RangeSupport.Plan plan = RangeSupport.plan(rangeHeader, dec.size());
+                if (plan.status == 416) {
+                    closeQuietly(dec);
+                    h.put("Content-Range", plan.contentRange());
+                    return new WebResourceResponse("audio/wav", null, 416, "Range Not Satisfiable", h, new ByteArrayInputStream(new byte[0]));
+                }
+                InputStream body = new RangeSupport.Limited(dec, plan.streamLength());
+                if (plan.status == 206) {
+                    h.put("Content-Range", plan.contentRange());
+                    return new WebResourceResponse("audio/wav", null, 206, "Partial Content", h, body);
+                }
+                return new WebResourceResponse("audio/wav", null, 200, "OK", h, body);
+            }
+        }
+
         ParcelFileDescriptor pfd;
         try {
             pfd = cr.openFileDescriptor(uri, "r");
@@ -212,14 +246,6 @@ final class MediaLibrary {
         }
         long size = pfd.getStatSize();
         if (size < 0) size = describe(ctx, uri).optLong("size", -1);
-
-        String rangeHeader = null;
-        Map<String, String> req = request.getRequestHeaders();
-        if (req != null) {
-            for (Map.Entry<String, String> e : req.entrySet()) {
-                if ("range".equalsIgnoreCase(e.getKey())) rangeHeader = e.getValue();
-            }
-        }
 
         String mime = cr.getType(uri);
         if (mime == null || !(mime.startsWith("audio/") || mime.startsWith("application/ogg"))) mime = mimeFromName(u);

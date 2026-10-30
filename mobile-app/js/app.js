@@ -5,7 +5,7 @@ import { analyzeBlob, decodeFull } from './analyzer.js';
 import { DeckWaveform, OverviewWaveform } from './waveform.js';
 import { Engine } from './engine.js';
 import { PRESETS, STAGES, EQ_FREQS, EQ_LABELS } from './sound.js';
-import { isApp, nativeUpdate, nativeTheme, onRemote, onBack, blobToBase64, pickFiles, pickFolder, rescanFolders, releaseUri, mediaUrl, RemoteFile } from './native.js';
+import { isApp, nativeUpdate, nativeTheme, onRemote, onBack, blobToBase64, pickFiles, pickFolder, rescanFolders, releaseUri, mediaUrl, RemoteFile, playUrl, nativeDecoder } from './native.js';
 
 const $ = (id) => document.getElementById(id);
 const SVGNS = 'http://www.w3.org/2000/svg';
@@ -103,14 +103,14 @@ if (new URLSearchParams(location.search).has('debug')) window.grooveEngine = eng
 /** What a deck plays: the File itself (browser) or a stream URL for the file on the phone (app). */
 async function sourceFor(id) {
   const t = state.tracks.get(id);
-  if (t && t.uri) return t.convert ? converted(t) : mediaUrl(t.uri);
+  if (t && t.uri) return t.convert ? converted(t) : playUrl(t.uri);
   return db.get('files', id);
 }
 
 // ---------- safety net for files Android's web player won't open or stalls on ----------
 // The song is decoded in memory (the same decoder that already reads key/BPM) and handed to the
 // player as plain PCM WAV: 16-bit at the file's own sample rate, kept only in memory, never saved.
-const APP_VERSION = '2.2';
+const APP_VERSION = '3.0';
 const convertedCache = new Map(); // id -> Promise<Blob>, at most 3 songs
 function converted(t) {
   if (convertedCache.has(t.id)) {
@@ -1310,7 +1310,7 @@ async function deleteTrackFlow(id, title) {
 }
 
 // ---------- import ----------
-const AUDIO_EXT = /\.(flac|m4a|alac|aac|mp4|aif|aiff|aifc|wav|wave|mp3|ogg|oga|opus)$/i;
+const AUDIO_EXT = /\.(flac|m4a|alac|aac|mp4|aif|aiff|aifc|wav|wave|w64|mp3|ogg|oga|opus|dsf|dff)$/i;
 async function makeThumb(blob, size = 240) {
   try {
     const bmp = await createImageBitmap(blob);
@@ -1660,7 +1660,7 @@ function syncSettingsUI() {
   $('fadeNote').hidden = engine.volumeSupported;
   $('cueOutputBlock').hidden = !engine.sinkSupported || isApp;
   renderLibrarySettings();
-  $('versionNote').textContent = `Groove ${APP_VERSION}${isApp ? ' for Android' : ''}`;
+  $('versionNote').textContent = `Groove ${APP_VERSION}${isApp ? ' for Android' : ''}${nativeDecoder ? ' · Groove decoders (FLAC, WAV, AIFF, DSD)' : ''}`;
   renderQueue();
 }
 async function listOutputs() {

@@ -26,6 +26,7 @@
 #include "AAudioOutput.h"
 #include "groove/AudioEngine.h"
 #include "groove/Library.h"
+#include "groove/WavStream.h"
 
 using namespace groove;
 
@@ -253,6 +254,13 @@ struct LibraryHolder {
 
 Registry<EngineHolder> gEngines;
 Registry<LibraryHolder> gLibraries;
+
+struct DecodeHolder {
+    std::mutex m;  // one WebView request uses one stream, but never trust callers to serialise
+    std::unique_ptr<WavStream> stream;
+    std::vector<uint8_t> scratch;
+};
+Registry<DecodeHolder> gDecoders;
 
 // ---------------------------------------------------------------- engine natives
 jlong nativeCreate(JNIEnv* e, jclass, jobject opener, jint apiLevel, jint mixerRate, jboolean bitPerfectMixer, jdouble ringSeconds) {
@@ -515,6 +523,62 @@ jstring nativeLibraryQuery(JNIEnv* e, jclass, jlong h, jboolean matchAll, jintAr
     }
 }
 
+// ---------------------------------------------------------------- decode-to-WAV (WebView playback through Groove's decoders)
+/// Takes ownership of `fd` in every case. Returns 0 if Groove can't decode the file (the caller then serves it raw).
+jlong nativeDecodeOpen(JNIEnv* e, jclass, jint fd, jstring name) {
+    UniqueFd owned(fd);
+    try {
+        auto src = FileSource::adopt(std::move(owned), fromJ(e, name));
+        if (!src) return 0;
+        auto w = WavStream::open(std::move(src).value());
+        if (!w) {
+            __android_log_print(ANDROID_LOG_INFO, kTag, "native decode not used: %s", w.error().message.c_str());
+            return 0;
+        }
+        auto h = std::make_shared<DecodeHolder>();
+        h->stream = std::move(w).value();
+        h->scratch.resize(64 * 1024);
+        return gDecoders.add(std::move(h));
+    } catch (...) {
+        return 0;
+    }
+}
+
+/// out: [totalBytes, sampleRate, channels, outBits, frames]
+jboolean nativeDecodeInfo(JNIEnv* e, jclass, jlong h, jlongArray out) {
+    auto d = gDecoders.get(h);
+    if (!d || !out || e->GetArrayLength(out) < 5) return JNI_FALSE;
+    std::lock_guard<std::mutex> lk(d->m);
+    const jlong v[5] = {static_cast<jlong>(d->stream->size()), static_cast<jlong>(d->stream->format().sampleRate),
+                        static_cast<jlong>(d->stream->format().channels), static_cast<jlong>(d->stream->outBits()),
+                        static_cast<jlong>(d->stream->frames())};
+    e->SetLongArrayRegion(out, 0, 5, v);
+    return clearException(e) ? JNI_FALSE : JNI_TRUE;
+}
+
+/// Reads up to len bytes at `offset` into buf[off…]. Returns bytes read, 0 at the end, -1 on a read error.
+jint nativeDecodeRead(JNIEnv* e, jclass, jlong h, jlong offset, jbyteArray buf, jint off, jint len) {
+    auto d = gDecoders.get(h);
+    if (!d || !buf || offset < 0 || off < 0 || len < 0 || off > e->GetArrayLength(buf) - len) return -1;
+    std::lock_guard<std::mutex> lk(d->m);
+    jint done = 0;
+    while (done < len) {
+        const size_t want = std::min<size_t>(d->scratch.size(), static_cast<size_t>(len - done));
+        auto r = d->stream->read(static_cast<uint64_t>(offset) + static_cast<uint64_t>(done), d->scratch.data(), want);
+        if (!r) return done > 0 ? done : -1;
+        if (r.value() == 0) break;
+        e->SetByteArrayRegion(buf, off + done, static_cast<jsize>(r.value()), reinterpret_cast<const jbyte*>(d->scratch.data()));  // copy, no pinning
+        if (clearException(e)) return -1;
+        done += static_cast<jint>(r.value());
+    }
+    return done;
+}
+
+void nativeDecodeClose(JNIEnv*, jclass, jlong h) {
+    auto d = gDecoders.remove(h);
+    d.reset();
+}
+
 // ---------------------------------------------------------------- registration
 const JNINativeMethod kNativeMethods[] = {
     {GROOVE_JSTR("nativeCreate"), GROOVE_JSTR("(Lapp/groove/engine/SafFileOpener;IIZD)J"), reinterpret_cast<void*>(nativeCreate)},
@@ -537,6 +601,10 @@ const JNINativeMethod kNativeMethods[] = {
     {GROOVE_JSTR("nativeLibraryScan"), GROOVE_JSTR("(JLjava/lang/String;[Ljava/lang/String;[Ljava/lang/String;[J[JLjava/lang/ref/WeakReference;)Z"),
      reinterpret_cast<void*>(nativeLibraryScan)},
     {GROOVE_JSTR("nativeLibraryCancel"), GROOVE_JSTR("(J)V"), reinterpret_cast<void*>(nativeLibraryCancel)},
+    {GROOVE_JSTR("nativeDecodeOpen"), GROOVE_JSTR("(ILjava/lang/String;)J"), reinterpret_cast<void*>(nativeDecodeOpen)},
+    {GROOVE_JSTR("nativeDecodeInfo"), GROOVE_JSTR("(J[J)Z"), reinterpret_cast<void*>(nativeDecodeInfo)},
+    {GROOVE_JSTR("nativeDecodeRead"), GROOVE_JSTR("(JJ[BII)I"), reinterpret_cast<void*>(nativeDecodeRead)},
+    {GROOVE_JSTR("nativeDecodeClose"), GROOVE_JSTR("(J)V"), reinterpret_cast<void*>(nativeDecodeClose)},
     {GROOVE_JSTR("nativeLibraryQuery"), GROOVE_JSTR("(JZ[I[I[Ljava/lang/String;[D[DIZIZ)Ljava/lang/String;"), reinterpret_cast<void*>(nativeLibraryQuery)},
 };
 

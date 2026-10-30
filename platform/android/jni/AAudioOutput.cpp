@@ -46,7 +46,9 @@ Result<OutputConfig> AAudioOutput::tryOpen(const OutputRequest& req, aaudio_form
     // which is kinder to the battery for plain music playback.
     AAudioStreamBuilder_setSharingMode(raw, exclusive ? AAUDIO_SHARING_MODE_EXCLUSIVE : AAUDIO_SHARING_MODE_SHARED);
     AAudioStreamBuilder_setPerformanceMode(raw, exclusive ? AAUDIO_PERFORMANCE_MODE_LOW_LATENCY : AAUDIO_PERFORMANCE_MODE_POWER_SAVING);
-    if (apiLevel_ >= 28) {
+    // API 28+ calls: weakly linked (__ANDROID_UNAVAILABLE_SYMBOLS_ARE_WEAK__) and guarded at run time,
+    // so the same library still loads on Android 8.x.
+    if (__builtin_available(android 28, *)) {
         AAudioStreamBuilder_setUsage(raw, AAUDIO_USAGE_MEDIA);
         AAudioStreamBuilder_setContentType(raw, AAUDIO_CONTENT_TYPE_MUSIC);
     }

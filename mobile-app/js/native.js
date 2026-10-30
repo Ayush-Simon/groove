@@ -55,6 +55,16 @@ export function releaseUri(uri) { try { N && N.release(uri); } catch { /* ignore
 /** URL the WebView can stream (with seeking) for a song on the phone. */
 export function mediaUrl(uri) { return `/media?u=${encodeURIComponent(uri)}`; }
 
+/** Groove's own decoders (libFLAC, libsndfile, DSD→PCM in libgroove.so) are available in this build. */
+export const nativeDecoder = (() => { try { return !!(N && N.nativeDecoder && N.nativeDecoder()); } catch { return false; } })();
+
+/**
+ * URL for PLAYBACK. With the native decoder, the app serves the song already decoded to PCM WAV, so the WebView
+ * never demuxes/decodes the original (FLAC/WAV/AIFF/DSD). Formats Groove doesn't decode come back as the original.
+ * Tag reading and analysis keep using mediaUrl() (original bytes).
+ */
+export function playUrl(uri) { return nativeDecoder ? `${mediaUrl(uri)}&decode=1` : mediaUrl(uri); }
+
 /**
  * A song on the phone, readable like a File: .size, .name, .type, .slice(a, z).arrayBuffer().
  * Reads use HTTP Range requests, so reading tags only touches the start and end of the file.

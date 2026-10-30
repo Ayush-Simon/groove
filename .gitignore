@@ -17,3 +17,7 @@ __pycache__/
 
 # Native engine build output (cmake)
 /build/
+
+# Android native library build output and the downloaded NDK sysroot
+android/build-native/
+*.tgz

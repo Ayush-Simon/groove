@@ -61,12 +61,7 @@ else()
   pkg_check_modules(FLAC REQUIRED IMPORTED_TARGET flac)
   pkg_check_modules(SNDFILE REQUIRED IMPORTED_TARGET sndfile)
   find_package(SQLite3 REQUIRED)
-  if(TARGET SQLite3::SQLite3)  # CMake 4.1+ name; SQLite::SQLite3 is deprecated there
-    set(GROOVE_SQLITE_TARGET SQLite3::SQLite3)
-  else()
-    set(GROOVE_SQLITE_TARGET SQLite::SQLite3)
-  endif()
-  set(GROOVE_DEP_LIBS PkgConfig::FLAC PkgConfig::SNDFILE ${GROOVE_SQLITE_TARGET})
+  set(GROOVE_DEP_LIBS PkgConfig::FLAC PkgConfig::SNDFILE SQLite::SQLite3)
 endif()
 
 # ---------------------------------------------------------------- warnings / sanitizers
@@ -91,6 +86,7 @@ add_library(groove_core STATIC
   src/decode/FlacDecoder.cpp
   src/decode/SndfileDecoder.cpp
   src/decode/DsdDecoder.cpp
+  src/decode/WavStream.cpp
   src/meta/MetadataReader.cpp
   src/library/LibraryDb.cpp
   src/library/LibraryScanner.cpp
@@ -114,6 +110,7 @@ if(GROOVE_TESTS)
     tests/test_metadata.cpp
     tests/test_engine.cpp
     tests/test_library.cpp
+    tests/test_wavstream.cpp
     tests/TestUtil.cpp)
   target_include_directories(groove_tests PRIVATE tests)
   target_link_libraries(groove_tests PRIVATE groove_core groove_flags)

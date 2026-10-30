@@ -10,31 +10,14 @@ web UI in `mobile-app/` stays exactly as it is and is hosted by the native shell
 | Part | State |
 |---|---|
 | `core/` (engine, decoders, DSP, metadata, library) | **Built and tested on Linux**: GCC and Clang with `-Werror`, 33 unit tests, AddressSanitizer + UndefinedBehaviorSanitizer + LeakSanitizer, ThreadSanitizer, Valgrind memcheck (0 errors, every allocation freed), libFuzzer. Run `scripts/validate-core.sh`. |
-| `core/` on macOS (Apple Silicon, Apple clang 21) | **Built and tested**: `-Werror`, 33/33 tests under ASan + UBSan and under TSan. Gapless render of `sample-music/` (24/96 FLAC → 24/96 FLAC) is bit-exact against `flac -d`. LeakSanitizer, Valgrind and libFuzzer aren't available with Apple clang, so leak and fuzz runs stay on Linux. |
 | Mobile dependency stack (`GROOVE_FETCH_DEPS`) | **Built and tested**: libFLAC 1.4.3, libsndfile 1.2.2 (patched), SQLite 3.49.2 fetched from pinned sources; all tests pass under ASan on it. |
-| Android JNI + AAudio (`platform/android/jni`) | **Type-checked** against the real AAudio header with `-Werror` (`scripts/android-check/check.sh`, Linux and macOS). **Not yet built with the NDK or run on a device.** |
+| Android JNI + AAudio (`platform/android/jni`) | **Type-checked** against the real AAudio header with `-Werror` (`scripts/android-check/check.sh`). **Not yet built with the NDK or run on a device.** |
 | Android Kotlin (`platform/android/kotlin`) | Written; **not compiled** (no Kotlin compiler was available where this was written). |
 | iOS Obj-C++ / Swift (`platform/ios`) | Written; **not compiled** (needs Xcode on a Mac). |
 | Hooking the web UI to the native engine | **Not done yet.** The shipping app (Groove.apk) still plays through the WebView. See roadmap phase 3. |
 
 "Zero runtime errors" is the design goal, enforced by the rules below and checked by the tools above. No test
 suite can prove there are no bugs. Real devices will find things that desktop tests can't, so phase 4 exists.
-
-### Building on macOS
-
-```bash
-brew install cmake ninja pkg-config flac libsndfile
-SDK=$(xcrun --show-sdk-path)
-cmake -S core -B build/mac/asan -G Ninja -DCMAKE_OSX_SYSROOT=$SDK -DCMAKE_BUILD_TYPE=Debug \
-      -DGROOVE_TESTS=ON -DGROOVE_TOOLS=ON -DGROOVE_WERROR=ON -DGROOVE_SANITIZE=address,undefined
-ninja -C build/mac/asan && build/mac/asan/groove_tests
-scripts/android-check/check.sh
-```
-
-If clang can't find `<vector>` (a Command Line Tools install whose libc++ headers are missing), reinstall them with
-`sudo rm -rf /Library/Developer/CommandLineTools && xcode-select --install`, or as a stopgap add
-`-DCMAKE_CXX_FLAGS="-nostdinc++ -isystem $SDK/usr/include/c++/v1"` (and `EXTRA_CXXFLAGS` with the same flags for
-`check.sh`). iOS builds need full Xcode, not just the Command Line Tools.
 
 ## Directory layout
 

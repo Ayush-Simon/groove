@@ -308,6 +308,10 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public String platform() { return "android"; }
 
+        /** True when libgroove.so loaded: playback can go through Groove's own decoders (/media?…&decode=1). */
+        @JavascriptInterface
+        public boolean nativeDecoder() { return app.groove.engine.GrooveNative.AVAILABLE; }
+
         @JavascriptInterface
         public void pickFiles() {
             runOnUiThread(new Runnable() { @Override public void run() { launchFilePicker(); } });

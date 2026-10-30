@@ -12,7 +12,9 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../../core ${CMAKE_BINARY_DIR}/g
 
 add_library(groove SHARED GrooveJni.cpp AAudioOutput.cpp)
 target_link_libraries(groove PRIVATE groove_core groove_flags aaudio log android)
-target_compile_options(groove PRIVATE -fvisibility=hidden -ffunction-sections -fdata-sections)
+target_compile_options(groove PRIVATE -fvisibility=hidden -ffunction-sections -fdata-sections -Werror=unguarded-availability)
+# Newer-API symbols are weak and every use is wrapped in __builtin_available (see AAudioOutput.cpp).
+target_compile_definitions(groove PRIVATE __ANDROID_UNAVAILABLE_SYMBOLS_ARE_WEAK__)
 target_link_options(groove PRIVATE
   -Wl,--gc-sections
   -Wl,--exclude-libs,ALL           # only JNI_OnLoad is exported; everything else stays internal

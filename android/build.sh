@@ -13,8 +13,8 @@ set -euo pipefail
 cd "$(dirname "$0")"
 TOOLS="${TOOLS:?set TOOLS to the folder with aapt2, android-29.jar, dx.jar, apksigner.jar}"
 OUT=build
-VERSION_CODE="${VERSION_CODE:-4}"
-VERSION_NAME="${VERSION_NAME:-2.2}"
+VERSION_CODE="${VERSION_CODE:-5}"
+VERSION_NAME="${VERSION_NAME:-3.0}"
 unset JAVA_TOOL_OPTIONS || true
 
 rm -rf "$OUT"
@@ -43,6 +43,14 @@ javac -nowarn -encoding UTF-8 -source 8 -target 8 -Xlint:-options \
 echo "4/6 Converting to dex"
 java -jar "$TOOLS/dx.jar" --dex --min-sdk-version=24 --output="$OUT/dex/classes.dex" "$OUT/classes"
 (cd "$OUT/dex" && zip -q ../unsigned.apk classes.dex)
+# Groove's native decoders/engine (scripts/build-android-native.sh). Without it the app still works,
+# decoding through the WebView as before.
+if [ -f build-native/arm64-v8a/libgroove.so ]; then
+  mkdir -p "$OUT/native/lib/arm64-v8a"
+  cp build-native/arm64-v8a/libgroove.so "$OUT/native/lib/arm64-v8a/"
+  (cd "$OUT/native" && zip -q ../unsigned.apk lib/arm64-v8a/libgroove.so)
+  echo "   + lib/arm64-v8a/libgroove.so"
+fi
 
 echo "5/6 Aligning"
 python3 - "$OUT/unsigned.apk" "$OUT/aligned.apk" <<'PY'
