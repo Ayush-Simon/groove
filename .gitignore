@@ -21,3 +21,6 @@ __pycache__/
 # Android native library build output and the downloaded NDK sysroot
 android/build-native/
 *.tgz
+
+# Local Claude settings
+.claude/
